@@ -31,4 +31,25 @@ if errorlevel 1 exit /b 1
 cl /nologo /std:c++17 /EHsc /W4 /WX /MT /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 native\browser\main.cpp native\browser\windows.cpp native\browser\model.cpp build\browser_resources.res /Fobuild\ /Febuild\HellBoost.exe /link /SUBSYSTEM:WINDOWS /MANIFEST:NO user32.lib gdi32.lib advapi32.lib comctl32.lib comdlg32.lib winhttp.lib
 if errorlevel 1 exit /b 1
 echo HellBoost native Win32 browser, library and tests built successfully.
+if not exist build\gameui mkdir build\gameui
+if not exist build\gameui-fixture mkdir build\gameui-fixture
+rc /nologo /fobuild\gameui\resources.res native\gameui\resources.rc
+if errorlevel 1 exit /b 1
+cl /nologo /std:c++17 /EHsc /W4 /WX /MT /DUNICODE /D_UNICODE /D_WIN32_WINNT=0x0601 /LD native\gameui\proxy.cpp build\gameui\resources.res /Fobuild\gameui\proxy.obj /Febuild\gameui\GameUI.dll /link /DEF:native\gameui\exports.def /IMPLIB:build\gameui\GameUI.lib user32.lib advapi32.lib
+if errorlevel 1 exit /b 1
+cl /nologo /std:c++17 /EHsc /W4 /WX /MT /LD native\gameui\test_original.cpp /Fobuild\gameui-fixture\original.obj /Febuild\gameui-fixture\HellBoost.GameUI.original.dll /link /DEF:native\gameui\exports.def /IMPLIB:build\gameui-fixture\original.lib
+if errorlevel 1 exit /b 1
+cl /nologo /std:c++17 /EHsc /W4 /WX /MT /DUNICODE /D_UNICODE native\gameui\test_proxy.cpp /Fobuild\gameui-fixture\test_proxy.obj /Febuild\gameui-fixture\test_proxy.exe /link user32.lib
+if errorlevel 1 exit /b 1
+copy /y build\gameui\GameUI.dll build\gameui-fixture\GameUI.dll
+if errorlevel 1 exit /b 1
+build\gameui-fixture\test_proxy.exe build\gameui-fixture\GameUI.dll
+if errorlevel 1 exit /b 1
+if exist downloads\gameui\GameUI.dll (
+    copy /y downloads\gameui\GameUI.dll build\gameui-fixture\GameUI.dll
+    if errorlevel 1 exit /b 1
+    build\gameui-fixture\test_proxy.exe build\gameui-fixture\GameUI.dll
+    if errorlevel 1 exit /b 1
+)
+echo GameUI007 bridge and in-process Options dialog tests passed.
 exit /b 0

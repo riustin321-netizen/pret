@@ -11,6 +11,12 @@ namespace hellboost::browser {
 namespace {
 constexpr wchar_t settings_key[] = L"Software\\HellBoost";
 
+bool steam_preference(bool fallback) {
+    DWORD value = fallback ? 1 : 0, bytes = sizeof(value);
+    if (RegGetValueW(HKEY_CURRENT_USER, settings_key, L"PreferSteam", RRF_RT_REG_DWORD, nullptr, &value, &bytes) != ERROR_SUCCESS) return fallback;
+    return value != 0;
+}
+
 std::runtime_error windows_error(const char* operation) {
     return std::runtime_error(std::string(operation) + " (Windows " + std::to_string(GetLastError()) + ")");
 }
@@ -89,6 +95,7 @@ std::string utf8(const std::wstring& text) {
 
 Settings load_settings() {
     Settings settings;
+    settings.prefer_steam = steam_preference(true);
     try {
         const auto stored = registry_text(HKEY_CURRENT_USER, settings_key, L"SettingsJson");
         if (stored.empty()) return settings;
@@ -97,7 +104,7 @@ Settings load_settings() {
         const auto nickname = document.value("nickname", std::string("Player"));
         if (valid_nickname(nickname)) settings.nickname = wide(nickname);
         settings.windowed = document.value("windowed", true);
-        settings.prefer_steam = document.value("prefer_steam", true);
+        settings.prefer_steam = steam_preference(document.value("prefer_steam", true));
         settings.local_game = wide(document.value("local_game", std::string{}));
         for (const auto* key : {"favorites", "history"}) {
             const auto items = document.find(key);
@@ -111,7 +118,9 @@ Settings load_settings() {
             }
         }
     } catch (const std::exception&) {
-        return Settings{};
+        Settings fallback;
+        fallback.prefer_steam = steam_preference(true);
+        return fallback;
     }
     return settings;
 }
@@ -127,8 +136,10 @@ void save_settings(const Settings& settings) {
     const auto opened = RegCreateKeyExW(HKEY_CURRENT_USER, settings_key, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &handle, nullptr);
     if (opened != ERROR_SUCCESS) throw std::runtime_error("Nu pot salva setarile in profilul Windows");
     const auto written = RegSetValueExW(handle, L"SettingsJson", 0, REG_SZ, reinterpret_cast<const BYTE*>(text.c_str()), static_cast<DWORD>((text.size() + 1) * sizeof(wchar_t)));
+    DWORD preference = settings.prefer_steam ? 1 : 0;
+    const auto mode_written = written == ERROR_SUCCESS ? RegSetValueExW(handle, L"PreferSteam", 0, REG_DWORD, reinterpret_cast<const BYTE*>(&preference), sizeof(preference)) : written;
     RegCloseKey(handle);
-    if (written != ERROR_SUCCESS) throw std::runtime_error("Salvarea setarilor a esuat");
+    if (written != ERROR_SUCCESS || mode_written != ERROR_SUCCESS) throw std::runtime_error("Salvarea setarilor a esuat");
 }
 
 std::filesystem::path application_directory() {

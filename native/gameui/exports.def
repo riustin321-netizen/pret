@@ -1,0 +1,3 @@
+LIBRARY GameUI
+EXPORTS
+    CreateInterface

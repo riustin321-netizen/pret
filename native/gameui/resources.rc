@@ -1,0 +1,14 @@
+#include <windows.h>
+200 DIALOGEX 0, 0, 310, 166
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "HellBoost / Options"
+FONT 10, "Segoe UI"
+BEGIN
+ LTEXT "HELLBOOST - CONEXIUNE", -1, 14, 12, 280, 16
+ GROUPBOX "Modul de pornire", -1, 12, 34, 285, 54
+ CONTROL "Integrare Steam (daca este instalat)", 201, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 24, 54, 260, 16
+ LTEXT "Bifat: Steam oficial are prioritate. Debifat: instalarea locala.", -1, 15, 94, 280, 20
+ LTEXT "Se aplica la urmatoarea pornire prin HellBoost. Nu schimba autentificarea jocului aflat deja in rulare.", -1, 15, 115, 280, 24
+ DEFPUSHBUTTON "Salveaza", IDOK, 140, 143, 74, 17
+ PUSHBUTTON "Anuleaza", IDCANCEL, 222, 143, 74, 17
+END

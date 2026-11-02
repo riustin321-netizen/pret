@@ -2,7 +2,9 @@
 
 HellBoost este un browser de servere și launcher propriu pentru CS 1.6. Aplicația principală este acum **C++/Win32**, fără Python și fără module NextClient. Lista, ordinea boosturilor și informațiile despre servere vin din API-ul existent al platformei HellBoost.
 
-**Stadiu:** aplicație externă în dezvoltare, nu un înlocuitor final pentru clientul CS. Nu modifică motorul, nu înlocuiește „Find Servers” din joc și nu raportează încă intrări confirmate sau timpi reali de conectare.
+**Stadiu:** aplicație externă și kit experimental de opțiuni în procesul jocului, nu un înlocuitor final pentru clientul CS. Nu modifică motorul, nu înlocuiește „Find Servers” din joc și nu raportează încă intrări confirmate sau timpi reali de conectare.
+
+Pentru bifa Steam în interiorul CS, vezi [kitul GameUI experimental](docs/gameui-test.md). Acesta adaugă **Options HellBoost** în meniul unei copii de test, cu un dialog propriu care salvează preferința. Opțiunile clasice rămân disponibile separat. Nu include biblioteca Valve și nu schimbă autentificarea jocului în curs.
 
 ## Descărcare și pornire
 
