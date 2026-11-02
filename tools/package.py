@@ -41,15 +41,13 @@ def package(windows=False, native=False):
     name = "HellBoost-dev-windows-x86.zip" if windows else "HellBoost-native-dev-x86.zip" if native else "HellBoost-dev-source.zip"
     output = ROOT / "dist" / name
     output.parent.mkdir(parents=True, exist_ok=True)
+    entries = [(path, "HellBoost/" + path.relative_to(ROOT).as_posix()) for path in sorted(files)]
+    entries.extend((path, "HellBoost/" + name) for path, name in binaries)
+    manifest = []
     with ZipFile(output, "w", ZIP_DEFLATED) as archive:
-        for path in sorted(files):
-            archive.write(path, "HellBoost/" + path.relative_to(ROOT).as_posix())
-        if windows or native:
-            for path, name in binaries:
-                archive.write(path, "HellBoost/" + name)
-        manifest = []
-        for name in archive.namelist():
-            content = archive.read(name)
+        for path, name in entries:
+            content = path.read_bytes()
+            archive.writestr(name, content)
             manifest.append({"path": name, "bytes": len(content), "sha256": hashlib.sha256(content).hexdigest()})
         archive.writestr("HellBoost/manifest.json", json.dumps({"development_build": True, "files": manifest}, indent=2))
     with ZipFile(output) as archive:
