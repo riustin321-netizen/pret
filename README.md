@@ -31,7 +31,7 @@ Istoricul înseamnă **cereri de pornire/conectare**, nu jucători intrați. Ța
 
 ## Ce rămâne pentru clientul integrat în joc
 
-Este necesar un adaptor propriu pentru motorul build 8684: browserul din joc, confirmarea intrării efective, corelarea cu tentativa, transportul statisticilor și integrarea lor în platformă. Compilarea bibliotecii nu rezolvă acest adaptor. Nu copia DLL-ul de dezvoltare peste `client.dll`, `hw.dll` sau `GameUI.dll`.
+Există acum o punte proprie `GameUI007` pentru panoul **Options HellBoost**, livrată separat pentru o copie de test. Browserul în joc, confirmarea intrării efective, corelarea cu tentativa și transportul statisticilor încă lipsesc. Biblioteca de evenimente `HellBoostClient.dll` nu trebuie copiată peste bibliotecile jocului; pentru puntea GameUI urmează numai instrucțiunile kitului experimental și păstrează originalele.
 
 [Detalii despre arhitectură și limitări](docs/client-integration.md). Codul vechi de compatibilitate este păstrat numai în `legacy/nextclient`, în afara pachetelor și a build-ului principal.
 
@@ -55,10 +55,13 @@ c++ -std=c++17 -Wall -Wextra -Werror -pedantic native/browser/model.cpp native/t
 /tmp/hellboost-browser-test
 python -m unittest discover -s tests -v
 python tools/package.py --windows
+python tools/package.py --gameui
 ```
 
 Testele C++ verifică schema API, ordinea boosturilor, erori și dubluri, Unicode, filtrele, favoritele și comenzile de lansare. Biblioteca de evenimente are [testele ABI și de durată](docs/native-client.md). Launcherul Python vechi este păstrat ca instrument opțional, nu este utilizat de EXE. Cele două teste Tk ale lui necesită display; pe Linux pot rula prin `xvfb-run -a`.
 
 `python tools/package.py` generează pachetul sursă. `--native` adaugă DLL-ul și testele de diagnostic; `--windows` include și aplicația nativă. Pachetele au manifest SHA-256 și exclud fișierele jocului, arhiva originală a platformei și integrarea istorică NextClient.
+
+`--gameui` generează `HellBoost-gameui-test-x86.zip`, cu puntea GameUI proprie, override-ul de meniu și instrucțiunile de instalare. DLL-ul original Valve nu este inclus. Testele cu bibliotecă simulată au trecut în [GitHub Actions](https://github.com/riustin321-netizen/pret/actions/runs/41493332556); acestea nu reprezintă încă un test în CS cu biblioteca reală.
 
 [Compilare prin MinGW și interfața bibliotecii](docs/native-client.md). Biblioteca JSON standard folosită este nlohmann/json 3.11.3 (MIT), cu sursa și licența incluse în `third_party/nlohmann`.

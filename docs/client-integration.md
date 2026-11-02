@@ -16,11 +16,11 @@ TLS și certificatele Windows sunt verificate implicit. Corpul este limitat la 2
 
 ## Browserul în joc: etapă încă lipsă
 
-Aplicația externă nu poate determina starea internă a motorului doar prin pornirea `hl.exe` sau Steam. DLL-ul de evidență nu se încarcă automat în CS. Pentru înlocuirea „Find Servers” și confirmarea intrării trebuie ales și verificat un mecanism propriu de integrare pentru fișierele exacte din build 8684.
+Aplicația externă nu poate determina starea internă a motorului doar prin pornirea `hl.exe` sau Steam. Există o punte experimentală proprie `GameUI007` în `native/gameui`, care transmite apelurile către biblioteca originală și adaugă comanda `hellboost_options`. DLL-ul de evidență nu se încarcă automat în CS. Puntea actuală implementează numai panoul de opțiuni; nu înlocuiește încă „Find Servers” și nu confirmă intrarea în server.
 
 SDK-ul oficial Half-Life inspectat (`b1b5cf5892918535619b2937bb927e46cb097ba1`) descrie callbackurile DLL-ului de mod și `net_api_t::Status`. Aceste declarații nu reprezintă singure un mecanism de extensie al clientului Counter-Strike închis. Nu inventăm offseturi sau metode de încărcare și nu instalăm automat DLL-uri peste jocul Steam.
 
-Analiza exporturilor bibliotecilor originale `hw.dll` și `GameUI.dll` ale build-ului țintă, apoi testarea pe Windows, sunt necesare pentru continuarea adaptorului. Aceste fișiere nu sunt incluse în repository și nu vor fi distribuite în pachetele HellBoost. Dacă se utilizează o copie separată de test, instalarea originală trebuie păstrată intactă.
+Exporturile bibliotecilor încărcate `hw.dll` și `GameUI.dll` au fost inspectate static. Puntea a fost verificată pe Windows cu un contract MSVC x86 și o bibliotecă simulată, pentru toate cele 21 de metode și pentru dialog. Pachetul distribuie numai DLL-ul propriu, care cere biblioteca originală păstrată separat sub numele `HellBoost.GameUI.original.dll`. Biblioteca Valve nu este inclusă. Testarea cu jocul real rămâne necesară pe o copie separată.
 
 ## Evenimentele conectării
 

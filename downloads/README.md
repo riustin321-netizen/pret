@@ -1,5 +1,6 @@
 # Pachete HellBoost pentru dezvoltare
 
+- `HellBoost-gameui-test-x86.zip`: **pentru Options HellBoost în interiorul CS**, kit experimental cu DLL proprie, meniu și instrucțiuni. Necesită biblioteca originală din copia ta de joc, care nu este inclusă; instalează numai într-o copie de test separată de Steam.
 - `HellBoost-dev-windows-x86.zip`: **pachetul recomandat**, cu aplicația C++/Win32 `HellBoost.exe`, biblioteca de dezvoltare, testele și sursele. Nu necesită Python.
 - `HellBoost-dev-source.zip`: sursele aplicației independente și ale bibliotecii native, fără binare Windows.
 - `HellBoost-native-dev-x86.zip`: surse plus DLL și teste de diagnostic, fără EXE-ul browserului; destinat dezvoltării.
