@@ -15,6 +15,7 @@ Factory factory = nullptr;
 void* original_ui = nullptr;
 const unsigned char* original_vtable = nullptr;
 INIT_ONCE once = INIT_ONCE_STATIC_INIT;
+HWND options_window = nullptr;
 constexpr wchar_t key[] = L"Software\\HellBoost";
 constexpr int checkbox_id = 201;
 
@@ -44,23 +45,34 @@ INT_PTR CALLBACK options_proc(HWND dialog, UINT message, WPARAM wparam, LPARAM) 
                 MessageBoxW(dialog, L"Setarea nu a putut fi salvata.", L"HellBoost", MB_OK | MB_ICONERROR);
                 return TRUE;
             }
-            EndDialog(dialog, IDOK);
+            DestroyWindow(dialog);
             return TRUE;
         }
-        if (LOWORD(wparam) == IDCANCEL) { EndDialog(dialog, IDCANCEL); return TRUE; }
+        if (LOWORD(wparam) == IDCANCEL) { DestroyWindow(dialog); return TRUE; }
     }
-    if (message == WM_CLOSE) { EndDialog(dialog, IDCANCEL); return TRUE; }
+    if (message == WM_CLOSE) { DestroyWindow(dialog); return TRUE; }
+    if (message == WM_NCDESTROY && options_window == dialog) options_window = nullptr;
     return FALSE;
 }
 
 void __cdecl show_options() {
+    if (options_window && IsWindow(options_window)) {
+        ShowWindow(options_window, SW_SHOW);
+        SetForegroundWindow(options_window);
+        return;
+    }
     HWND owner = GetActiveWindow();
     if (owner) {
         DWORD process = 0;
         GetWindowThreadProcessId(owner, &process);
         if (process != GetCurrentProcessId()) owner = nullptr;
     }
-    DialogBoxParamW(module, MAKEINTRESOURCEW(200), owner, options_proc, 0);
+    // A modal DialogBox would stop engine frames and multiplayer networking.
+    options_window = CreateDialogParamW(module, MAKEINTRESOURCEW(200), owner, options_proc, 0);
+    if (options_window) {
+        ShowWindow(options_window, SW_SHOW);
+        UpdateWindow(options_window);
+    }
 }
 
 template<class Function> Function method(unsigned index) {
@@ -92,14 +104,20 @@ void __fastcall start(void*, void*, void* engine, int version, void* system) {
         }
     }
 }
-void __fastcall shutdown(void*, void*) { method<void (__fastcall*)(void*, void*)>(3)(original_ui, nullptr); }
+void __fastcall shutdown(void*, void*) {
+    if (options_window && IsWindow(options_window)) DestroyWindow(options_window);
+    method<void (__fastcall*)(void*, void*)>(3)(original_ui, nullptr);
+}
 int __fastcall activate(void*, void*) { return method<int (__fastcall*)(void*, void*)>(4)(original_ui, nullptr); }
 int __fastcall demo(void*, void*) { return method<int (__fastcall*)(void*, void*)>(5)(original_ui, nullptr); }
 int __fastcall exclusive(void*, void*) { return method<int (__fastcall*)(void*, void*)>(6)(original_ui, nullptr); }
 void __fastcall frame(void*, void*) { method<void (__fastcall*)(void*, void*)>(7)(original_ui, nullptr); }
 void __fastcall connect(void*, void*, const char* game, int ip, int port) { method<void (__fastcall*)(void*, void*, const char*, int, int)>(8)(original_ui, nullptr, game, ip, port); }
 void __fastcall disconnect(void*, void*) { method<void (__fastcall*)(void*, void*)>(9)(original_ui, nullptr); }
-void __fastcall hide(void*, void*) { method<void (__fastcall*)(void*, void*)>(10)(original_ui, nullptr); }
+void __fastcall hide(void*, void*) {
+    if (options_window && IsWindow(options_window)) ShowWindow(options_window, SW_HIDE);
+    method<void (__fastcall*)(void*, void*)>(10)(original_ui, nullptr);
+}
 bool __fastcall active(void*, void*) { return method<bool (__fastcall*)(void*, void*)>(11)(original_ui, nullptr); }
 void __fastcall loading_start(void*, void*, const char* type, const char* name) { method<void (__fastcall*)(void*, void*, const char*, const char*)>(12)(original_ui, nullptr, type, name); }
 void __fastcall loading_finish(void*, void*, const char* type, const char* name) { method<void (__fastcall*)(void*, void*, const char*, const char*)>(13)(original_ui, nullptr, type, name); }

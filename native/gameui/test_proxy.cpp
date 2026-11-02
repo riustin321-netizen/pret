@@ -58,7 +58,21 @@ int wmain(int argc, wchar_t** argv) {
     ui->ValidateCDKey(true, false);
     ui->OnDisconnectFromServer(99, "user");
 
-    std::thread dialog_thread([] { command(); });
+    std::thread dialog_thread([] {
+        command();
+        HWND dialog = FindWindowW(nullptr, L"HellBoost / Options");
+        CHECK(dialog);
+        MSG message{};
+        while (IsWindow(dialog)) {
+            while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
+                if (!IsDialogMessageW(dialog, &message)) {
+                    TranslateMessage(&message);
+                    DispatchMessageW(&message);
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    });
     HWND dialog = nullptr;
     HWND checkbox = nullptr;
     for (unsigned i = 0; i < 250; ++i) {
