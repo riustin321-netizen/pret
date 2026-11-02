@@ -42,9 +42,9 @@ build-native.cmd
 powershell -File tools\smoke_windows.ps1
 ```
 
-Scriptul compilează aplicația, DLL-ul și testele x86. Testul de fereastră deschide și închide aplicația fără să pornească jocul sau să contacteze API-ul. Workflow-ul `.github/workflows/windows.yml` face aceiași pași și pregătește un artifact ZIP. Executarea CI trebuie verificată separat; existența workflow-ului nu dovedește că a trecut.
+Scriptul compilează aplicația, DLL-ul și testele x86. Testul verifică inițializarea WinHTTP cu TLS 1.2 și redirecturi dezactivate, apoi deschide și închide fereastra fără să pornească jocul sau să contacteze API-ul. Workflow-ul `.github/workflows/windows.yml` face aceiași pași și pregătește un artifact ZIP.
 
-Binarele incluse au fost compilate pe Linux cu MinGW GCC 14-posix. Nu au fost executate pe Windows în acest mediu. Windows 10/11 sunt țintele de test; Windows 7 nu este garantat, iar Steam nu îl mai suportă oficial.
+Binarele incluse în `downloads` au fost compilate pe Linux cu MinGW GCC 14-posix. Aceleași surse au trecut compilarea MSVC, testele native și testul de creare/închidere a ferestrei pe runnerul Windows din GitHub Actions; pentru build-ul `555b08d` a trecut și configurarea WinHTTP fără rețea. Binarele MinGW nu au fost executate direct pe Windows aici. Conectarea live la API și pornirea CS rămân de verificat pe calculatorul de test. Windows 10/11 sunt țintele de test; Windows 7 nu este garantat, iar Steam nu îl mai suportă oficial.
 
 ## Teste și pachete
 

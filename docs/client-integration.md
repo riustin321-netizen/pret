@@ -32,6 +32,6 @@ Transportul către backend și tabloul statisticilor nu sunt implementate. Contr
 
 ## Dovezi și limite
 
-Nucleul browserului și biblioteca de evenimente au teste executabile pe Linux. Binarele PE32 pentru Windows se compilează prin MinGW; compilarea nu validează WinHTTP sau pornirea CS pe Windows. Workflow-ul Windows include un test real de creare/închidere a ferestrei, fără a porni jocul.
+Nucleul browserului și biblioteca de evenimente au teste executabile pe Linux. Binarele PE32 din pachetele locale se compilează prin MinGW. În GitHub Actions, aceleași surse au trecut compilarea MSVC, testele native și verificarea reală a configurării WinHTTP și a creării/închiderii ferestrei, fără a trimite cereri HTTPS sau a porni jocul. Binarele MinGW nu au fost executate direct pe Windows în această sesiune.
 
 Platforma de producție nu a fost modificată. Conexiunea live către HellBoost a fost blocată de politica/proxy-ul mediului, deci nu este declarată funcțională. Compatibilitatea non-Steam înseamnă aici lansarea unui `hl.exe` ales de utilizator, nu furnizarea unui emulator sau compatibilitatea garantată a unui adaptor de motor cu orice client non-Steam.

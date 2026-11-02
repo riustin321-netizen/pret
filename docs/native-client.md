@@ -40,4 +40,4 @@ i686-w64-mingw32-g++-posix -std=c++17 -Wall -Wextra -Werror -pedantic -DUNICODE 
 
 Pe Windows, `native\abi_test.exe` din pachetul nativ verifică DLL-ul aflat alături și afișează rezultatul în terminal. Acesta este un test cu evenimente sintetice, nu un test al jocului; nu trimite statistici către HellBoost.
 
-`native\browser_test.exe` verifică nucleul browserului fără rețea sau acces la joc. `tools/smoke_windows.ps1`, rulat din checkout după compilare, deschide și închide fereastra aplicației native. Aceste teste nu confirmă că Steam deține jocul, că API-ul live este accesibil sau că un server CS acceptă conectarea.
+`native\browser_test.exe` verifică nucleul browserului fără rețea sau acces la joc. `tools/smoke_windows.ps1`, rulat din checkout după compilare, verifică configurarea TLS/redirecturilor prin `--check-transport`, apoi deschide și închide fereastra aplicației native. Aceste teste au trecut cu MSVC pe runnerul Windows din GitHub Actions pentru commitul `555b08d`. Nu confirmă că Steam deține jocul, că API-ul live este accesibil sau că un server CS acceptă conectarea.
