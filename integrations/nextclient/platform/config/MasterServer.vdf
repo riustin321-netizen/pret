@@ -1,0 +1,14 @@
+"MasterServer"
+{
+    "Selected" "0"
+    "CacheServers" "false"
+    "Servers"
+    {
+        "HellBoost"
+        {
+            "address" "https://hellboost.net/master_nextclient.php"
+            "site" "https://hellboost.net/"
+            "region" "0xFF"
+        }
+    }
+}

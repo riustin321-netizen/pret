@@ -1,0 +1,73 @@
+name: Windows development package
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'launcher/**'
+      - 'native/**'
+      - 'tests/**'
+      - 'tools/package.py'
+      - 'integrations/**'
+      - 'build-native.cmd'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    paths:
+      - 'launcher/**'
+      - 'native/**'
+      - 'tests/**'
+      - 'tools/package.py'
+      - 'integrations/**'
+      - 'build-native.cmd'
+      - '.github/workflows/windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  backend-and-portable-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require PHP and test master formatter
+        run: php -n tests/php/master_format_test.php
+      - name: Test launcher and real PHP HTTP route with fixture DB
+        env:
+          HELLBOOST_PHP_EXECUTABLE: php
+        run: xvfb-run -a python -m unittest discover -s tests -v
+      - name: Build native library
+        run: c++ -std=c++17 -Wall -Wextra -Werror -pedantic -fPIC -fvisibility=hidden -DHB_BUILD -shared native/hellboost_client.cpp -pthread -o /tmp/libHellBoostClient.so
+      - name: Build ABI tests
+        run: c++ -std=c++17 -Wall -Wextra -Werror -pedantic native/tests/abi_test.cpp -L/tmp -lHellBoostClient -Wl,-rpath,/tmp -pthread -o /tmp/hellboost-abi-test
+      - name: Run ABI tests
+        run: /tmp/hellboost-abi-test
+  windows-x86:
+    needs: backend-and-portable-core
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x86
+      - name: Test launcher and platform integration
+        run: python -m unittest discover -s tests -v
+      - name: Build and test native x86 DLL
+        shell: cmd
+        run: build-native.cmd
+      - name: Install executable packager
+        run: python -m pip install pyinstaller==6.11.1
+      - name: Build launcher executable
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --paths launcher --name HellBoost launcher/main.py
+      - name: Package development build
+        run: python tools/package.py --windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HellBoost-dev-windows-x86
+          path: dist/HellBoost-dev-windows-x86.zip
+          if-no-files-found: error

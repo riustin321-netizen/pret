@@ -1,0 +1,10 @@
+LIBRARY HellBoostClient
+EXPORTS
+    hb_abi_version
+    hb_create
+    hb_destroy
+    hb_set_enabled
+    hb_begin
+    hb_complete
+    hb_peek_result
+    hb_ack_result
