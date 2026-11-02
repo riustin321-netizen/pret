@@ -17,6 +17,10 @@ template <typename Function> void rejects(Function function) {
 }
 
 int main() {
+    CHECK(select_launch_mode(true, true) == LaunchMode::steam);
+    CHECK(select_launch_mode(true, false) == LaunchMode::local);
+    CHECK(select_launch_mode(false, true) == LaunchMode::local);
+    CHECK(select_launch_mode(false, false) == LaunchMode::local);
     const std::string body = R"({"servers":[
         {"rank":1,"address":"top.example.com:27015","hostname":"TOP","players":1,"max_players":32,"promo":"top","country":"RO","map":"de_dust2","online":true},
         {"rank":2,"address":"busy.example.com:27015","hostname":"Busy","players":30,"max_players":32,"promo":null},

@@ -97,6 +97,7 @@ Settings load_settings() {
         const auto nickname = document.value("nickname", std::string("Player"));
         if (valid_nickname(nickname)) settings.nickname = wide(nickname);
         settings.windowed = document.value("windowed", true);
+        settings.prefer_steam = document.value("prefer_steam", true);
         settings.local_game = wide(document.value("local_game", std::string{}));
         for (const auto* key : {"favorites", "history"}) {
             const auto items = document.find(key);
@@ -117,7 +118,7 @@ Settings load_settings() {
 
 void save_settings(const Settings& settings) {
     const nlohmann::json document = {
-        {"version", 1}, {"nickname", utf8(settings.nickname)}, {"windowed", settings.windowed},
+        {"version", 1}, {"nickname", utf8(settings.nickname)}, {"windowed", settings.windowed}, {"prefer_steam", settings.prefer_steam},
         {"local_game", utf8(settings.local_game.wstring())}, {"favorites", settings.favorites}, {"history", settings.history}
     };
     const auto text = wide(document.dump());
@@ -184,8 +185,8 @@ std::filesystem::path choose_local_game(HWND parent) {
 }
 
 std::wstring start_game(const Settings& settings, const std::string& address) {
-    const auto steam = find_steam();
-    const auto mode = steam.empty() ? LaunchMode::local : LaunchMode::steam;
+    const auto steam = settings.prefer_steam ? find_steam() : std::filesystem::path{};
+    const auto mode = select_launch_mode(settings.prefer_steam, !steam.empty());
     const auto executable = steam.empty() ? find_local_game(settings) : steam;
     if (executable.empty()) throw std::runtime_error("Steam nu a fost gasit. Alege instalarea locala hl.exe.");
     const auto arguments = game_arguments(mode, utf8(settings.nickname), settings.windowed, address);

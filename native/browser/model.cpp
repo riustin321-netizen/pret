@@ -69,6 +69,10 @@ bool valid_address(const std::string& address) {
     return port >= 1 && port <= 65535;
 }
 
+LaunchMode select_launch_mode(bool prefer_steam, bool steam_available) {
+    return prefer_steam && steam_available ? LaunchMode::steam : LaunchMode::local;
+}
+
 bool valid_nickname(const std::string& nickname) {
     if (nickname.empty() || nickname.size() > 128) return false;
     unsigned characters = 0;

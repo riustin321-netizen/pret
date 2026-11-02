@@ -39,7 +39,7 @@ public:
     HWND title = nullptr, subtitle = nullptr, search_label = nullptr, search = nullptr;
     HWND tabs = nullptr, list = nullptr, refresh = nullptr, favorite = nullptr, local = nullptr;
     HWND name_label = nullptr, name = nullptr, address_label = nullptr, address = nullptr;
-    HWND windowed = nullptr, save = nullptr, play = nullptr, status = nullptr, notice = nullptr;
+    HWND windowed = nullptr, steam_mode = nullptr, save = nullptr, play = nullptr, status = nullptr, notice = nullptr;
     HFONT font = nullptr, title_font = nullptr;
     int dpi = 96;
     hb::Settings settings;
@@ -109,6 +109,8 @@ public:
         SendMessageW(address, EM_SETLIMITTEXT, 259, 0);
         windowed = create(L"BUTTON", L"In fereastra", BS_AUTOCHECKBOX | WS_TABSTOP, windowed_id);
         SendMessageW(windowed, BM_SETCHECK, settings.windowed ? BST_CHECKED : BST_UNCHECKED, 0);
+        steam_mode = create(L"BUTTON", L"Integrare Steam (daca exista)", BS_AUTOCHECKBOX | WS_TABSTOP, 112);
+        SendMessageW(steam_mode, BM_SETCHECK, settings.prefer_steam ? BST_CHECKED : BST_UNCHECKED, 0);
         save = create(L"BUTTON", L"SALVEAZA", WS_TABSTOP, save_id);
         play = create(L"BUTTON", L"PORNESTE CS 1.6", BS_DEFPUSHBUTTON | WS_TABSTOP, play_id);
         status = create(L"STATIC", L"Pregatit. Reincarca lista pentru a contacta API-ul HellBoost.", 0);
@@ -139,9 +141,10 @@ public:
         move(address_label, margin + scale(240), controls_top + scale(48), width - scale(240), scale(22));
         move(name, margin, controls_top + scale(71), scale(220), scale(29));
         move(address, margin + scale(240), controls_top + scale(71), width - scale(240), scale(29));
-        move(windowed, margin, controls_top + scale(112), scale(150), scale(30));
-        move(save, margin + scale(160), controls_top + scale(110), scale(130), scale(34));
-        move(play, margin + scale(310), controls_top + scale(110), width - scale(310), scale(34));
+        move(windowed, margin, controls_top + scale(112), scale(140), scale(30));
+        move(steam_mode, margin + scale(145), controls_top + scale(112), scale(240), scale(30));
+        move(save, margin + scale(395), controls_top + scale(110), scale(110), scale(34));
+        move(play, margin + scale(515), controls_top + scale(110), width - scale(515), scale(34));
         move(status, margin, controls_top + scale(158), width, scale(32));
         move(notice, margin, controls_top + scale(198), width, scale(30));
     }
@@ -185,6 +188,7 @@ public:
     void read_fields() {
         settings.nickname = trim(control_text(name));
         settings.windowed = SendMessageW(windowed, BM_GETCHECK, 0, 0) == BST_CHECKED;
+        settings.prefer_steam = SendMessageW(steam_mode, BM_GETCHECK, 0, 0) == BST_CHECKED;
         if (!hb::valid_nickname(hb::utf8(settings.nickname)))
             throw std::runtime_error("Nume invalid: foloseste 1-32 litere, cifre, spatii sau . - _");
     }
@@ -225,7 +229,7 @@ public:
         read_fields();
         const auto endpoint = hb::utf8(trim(control_text(address)));
         if (!endpoint.empty() && !hb::valid_address(endpoint)) throw std::runtime_error("Server invalid: foloseste domeniu:port sau IP:port");
-        if (hb::find_steam().empty() && hb::find_local_game(settings).empty()) {
+        if ((!settings.prefer_steam || hb::find_steam().empty()) && hb::find_local_game(settings).empty()) {
             const auto path = hb::choose_local_game(window);
             if (path.empty()) return;
             settings.local_game = path;

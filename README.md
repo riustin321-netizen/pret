@@ -12,9 +12,9 @@ Pachetul pentru Windows este `downloads/HellBoost-dev-windows-x86.zip`. Extrage-
 2. Alege un server sau introdu o adresă `IP:port`/`domeniu:port`.
 3. Introdu numele și apasă **PORNESTE CS 1.6**.
 
-Steam are prioritate dacă este detectat. Folosește build-ul/ramura selectată în Steam; aplicația nu schimbă ramura și nu poate garanta că utilizatorul deține ori are instalat CS. Ținta de integrare este Steam legacy, protocol 48, build 8684.
+Opțiunea **Integrare Steam (dacă există)** este activă implicit și acordă prioritate instalării Steam. Debifarea ei selectează instalarea locală chiar dacă Steam este instalat. Setarea se salvează și se aplică la următoarea pornire; nu schimbă modul unui joc care rulează deja. Steam folosește build-ul/ramura selectată; aplicația nu schimbă ramura și nu poate garanta că utilizatorul deține ori are instalat CS. Ținta de integrare este Steam legacy, protocol 48, build 8684.
 
-Dacă Steam lipsește, aplicația caută `hl.exe` lângă EXE, în `client/hl.exe`, apoi în locația salvată. Dacă nu îl găsește, cere selectarea lui. Directorul trebuie să conțină `cstrike`. Aplicația nu instalează un emulator Steam și nu schimbă autentificarea jocului.
+Dacă Steam lipsește sau opțiunea este debifată, aplicația caută `hl.exe` lângă EXE, în `client/hl.exe`, apoi în locația salvată. Dacă nu îl găsește, cere selectarea lui. Directorul trebuie să conțină `cstrike`. Aplicația nu instalează un emulator Steam și nu schimbă autentificarea jocului.
 
 ## Funcții existente
 

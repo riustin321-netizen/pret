@@ -12,6 +12,7 @@ namespace hellboost::browser {
 struct Settings {
     std::wstring nickname = L"Player";
     bool windowed = true;
+    bool prefer_steam = true;
     std::filesystem::path local_game;
     std::vector<std::string> favorites;
     std::vector<std::string> history;

@@ -20,6 +20,7 @@ struct Server {
 };
 
 enum class LaunchMode { steam, local };
+LaunchMode select_launch_mode(bool prefer_steam, bool steam_available);
 
 bool valid_address(const std::string& address);
 bool valid_nickname(const std::string& nickname);
