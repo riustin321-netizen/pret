@@ -357,7 +357,11 @@ LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lp
 }
 }
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR arguments, int show) {
+    if (std::wstring(arguments) == L"--check-transport") {
+        try { hb::verify_platform_configuration(); return 0; }
+        catch (...) { return 2; }
+    }
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_LISTVIEW_CLASSES | ICC_TAB_CLASSES};
     if (!InitCommonControlsEx(&controls)) return 1;
     WNDCLASSEXW klass{};

@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 import struct
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -64,4 +65,10 @@ if __name__ == "__main__":
     group.add_argument("--windows", action="store_true", help="Require compiled launcher EXE, x86 DLL and ABI test EXE")
     group.add_argument("--native", action="store_true", help="Include x86 DLL and ABI test EXE, Python launcher remains source")
     args = parser.parse_args()
-    package(args.windows, args.native)
+    try:
+        package(args.windows, args.native)
+    except (Exception, SystemExit) as error:
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            detail = str(error).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            print(f"::error::Packaging failed: {detail}", flush=True)
+        raise

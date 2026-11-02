@@ -1,5 +1,9 @@
 $ErrorActionPreference = "Stop"
 $binary = Join-Path $PSScriptRoot "..\build\HellBoost.exe"
+$transport = Start-Process -FilePath $binary -ArgumentList "--check-transport" -PassThru -Wait
+if ($transport.ExitCode -ne 0) {
+    throw "WinHTTP TLS/redirect configuration check failed: $($transport.ExitCode)"
+}
 $process = Start-Process -FilePath $binary -PassThru
 try {
     if (-not $process.WaitForInputIdle(10000)) {

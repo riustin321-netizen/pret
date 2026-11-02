@@ -44,6 +44,27 @@ struct InternetHandle {
     InternetHandle(const InternetHandle&) = delete;
     InternetHandle& operator=(const InternetHandle&) = delete;
 };
+
+struct PlatformSession : InternetHandle {
+    PlatformSession() : InternetHandle(WinHttpOpen(L"HellBoost/0.3", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0)) {
+        if (!WinHttpSetTimeouts(value, 5000, 5000, 5000, 5000)) throw windows_error("Timeout WinHTTP");
+        DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+        if (!WinHttpSetOption(value, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols))) throw windows_error("TLS 1.2 indisponibil");
+    }
+};
+
+struct PlatformRequest {
+    PlatformSession session;
+    InternetHandle connection;
+    InternetHandle request;
+
+    PlatformRequest() :
+        connection(WinHttpConnect(session.value, L"hellboost.net", INTERNET_DEFAULT_HTTPS_PORT, 0)),
+        request(WinHttpOpenRequest(connection.value, L"GET", L"/api.php", nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE)) {
+        DWORD redirect = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
+        if (!WinHttpSetOption(request.value, WINHTTP_OPTION_REDIRECT_POLICY, &redirect, sizeof(redirect))) throw windows_error("Politica redirect HTTPS");
+    }
+};
 }
 
 std::wstring wide(const std::string& text) {
@@ -182,25 +203,24 @@ std::wstring start_game(const Settings& settings, const std::string& address) {
     return mode == LaunchMode::steam ? L"Steam" : L"local / non-Steam";
 }
 
+void verify_platform_configuration() {
+    PlatformRequest handles;
+    (void)handles;
+}
+
 std::vector<Server> fetch_platform(const std::atomic_bool& cancelled) {
-    InternetHandle session(WinHttpOpen(L"HellBoost/0.3", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
-    if (!WinHttpSetTimeouts(session.value, 5000, 5000, 5000, 5000)) throw windows_error("Timeout WinHTTP");
-    InternetHandle connection(WinHttpConnect(session.value, L"hellboost.net", INTERNET_DEFAULT_HTTPS_PORT, 0));
-    InternetHandle request(WinHttpOpenRequest(connection.value, L"GET", L"/api.php", nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE));
-    DWORD redirect = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
-    if (!WinHttpSetOption(request.value, WINHTTP_OPTION_REDIRECT_POLICY, &redirect, sizeof(redirect))) throw windows_error("Politica redirect HTTPS");
-    DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
-    if (!WinHttpSetOption(request.value, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols))) throw windows_error("TLS 1.2 indisponibil");
+    PlatformRequest handles;
+    auto request = handles.request.value;
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
     const auto check = [&] {
         if (cancelled.load()) throw std::runtime_error("Cerere anulata");
         if (std::chrono::steady_clock::now() > deadline) throw std::runtime_error("API-ul HellBoost a depasit timpul de raspuns");
     };
     check();
-    if (!WinHttpSendRequest(request.value, L"Accept: application/json\r\n", static_cast<DWORD>(-1), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) || !WinHttpReceiveResponse(request.value, nullptr))
+    if (!WinHttpSendRequest(request, L"Accept: application/json\r\n", static_cast<DWORD>(-1), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) || !WinHttpReceiveResponse(request, nullptr))
         throw windows_error("Conexiunea HTTPS catre hellboost.net a esuat");
     DWORD status = 0, size = sizeof(status);
-    if (!WinHttpQueryHeaders(request.value, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &size, WINHTTP_NO_HEADER_INDEX))
+    if (!WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &size, WINHTTP_NO_HEADER_INDEX))
         throw windows_error("Status HTTP invalid");
     if (status != 200) throw std::runtime_error("HellBoost API a raspuns HTTP " + std::to_string(status) + ". Verifica https://hellboost.net/api.php");
     std::string body;
@@ -208,7 +228,7 @@ std::vector<Server> fetch_platform(const std::atomic_bool& cancelled) {
     while (true) {
         check();
         DWORD received = 0;
-        if (!WinHttpReadData(request.value, buffer, sizeof(buffer), &received)) throw windows_error("Citirea API a esuat");
+        if (!WinHttpReadData(request, buffer, sizeof(buffer), &received)) throw windows_error("Citirea API a esuat");
         if (!received) break;
         if (body.size() + received > max_response_bytes) throw std::runtime_error("Raspuns API prea mare");
         body.append(buffer, received);

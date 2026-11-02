@@ -39,6 +39,8 @@ jobs:
         run: c++ -std=c++17 -Wall -Wextra -Werror -pedantic native/browser/model.cpp native/tests/browser_test.cpp -o /tmp/hellboost-browser-test
       - name: Test platform parsing, ranking and launch arguments
         run: /tmp/hellboost-browser-test
+      - name: Check source packaging
+        run: python tools/package.py
       - name: Build native library
         run: c++ -std=c++17 -Wall -Wextra -Werror -pedantic -fPIC -fvisibility=hidden -DHB_BUILD -shared native/hellboost_client.cpp -pthread -o /tmp/libHellBoostClient.so
       - name: Build ABI tests
