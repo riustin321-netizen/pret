@@ -62,8 +62,19 @@ jobs:
       - name: Test launcher and platform integration
         run: python -m unittest discover -s tests -v
       - name: Build native browser, DLL and tests
-        shell: cmd
-        run: build-native.cmd
+        shell: pwsh
+        run: |
+          cmd /c build-native.cmd 2>&1 | Tee-Object -Variable buildOutput
+          $buildExit = $LASTEXITCODE
+          if ($buildExit -ne 0) {
+            $details = @($buildOutput | Where-Object { "$_" -match 'error C|fatal error|error LNK|error RC|Failed at line' })
+            if ($details.Count -eq 0) { $details = @($buildOutput | Select-Object -Last 15) }
+            foreach ($line in ($details | Select-Object -Last 20)) {
+              $text = "$line".Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Output "::error::$text"
+            }
+            exit $buildExit
+          }
       - name: Check native window startup and shutdown
         run: ./tools/smoke_windows.ps1
       - name: Package development build

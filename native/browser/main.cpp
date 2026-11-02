@@ -12,6 +12,7 @@ constexpr UINT fetched_message = WM_APP + 1;
 constexpr int list_id = 101, tabs_id = 102, search_id = 103, refresh_id = 104;
 constexpr int favorite_id = 105, local_id = 106, play_id = 107, name_id = 108;
 constexpr int address_id = 109, windowed_id = 110, save_id = 111;
+constexpr int steam_mode_id = 112;
 
 std::wstring control_text(HWND control) {
     const int size = GetWindowTextLengthW(control);
@@ -46,7 +47,7 @@ public:
     std::vector<hb::Server> online, displayed;
     std::thread fetch_thread;
     std::atomic_bool cancelled{false};
-    bool closing = false, loading = false, rendering = false;
+    bool closing = false, loading = false, rendering = false, steam_dirty = false;
 
     ~Application() {
         cancelled.store(true);
@@ -109,7 +110,7 @@ public:
         SendMessageW(address, EM_SETLIMITTEXT, 259, 0);
         windowed = create(L"BUTTON", L"In fereastra", BS_AUTOCHECKBOX | WS_TABSTOP, windowed_id);
         SendMessageW(windowed, BM_SETCHECK, settings.windowed ? BST_CHECKED : BST_UNCHECKED, 0);
-        steam_mode = create(L"BUTTON", L"Integrare Steam (daca exista)", BS_AUTOCHECKBOX | WS_TABSTOP, 112);
+        steam_mode = create(L"BUTTON", L"Integrare Steam (daca exista)", BS_AUTOCHECKBOX | WS_TABSTOP, steam_mode_id);
         SendMessageW(steam_mode, BM_SETCHECK, settings.prefer_steam ? BST_CHECKED : BST_UNCHECKED, 0);
         save = create(L"BUTTON", L"SALVEAZA", WS_TABSTOP, save_id);
         play = create(L"BUTTON", L"PORNESTE CS 1.6", BS_DEFPUSHBUTTON | WS_TABSTOP, play_id);
@@ -185,7 +186,14 @@ public:
             SetWindowTextW(address, hb::wide(displayed[static_cast<std::size_t>(index)].address).c_str());
     }
 
+    void sync_steam_choice() {
+        if (!steam_mode || steam_dirty) return;
+        settings.prefer_steam = hb::load_settings().prefer_steam;
+        SendMessageW(steam_mode, BM_SETCHECK, settings.prefer_steam ? BST_CHECKED : BST_UNCHECKED, 0);
+    }
+
     void read_fields() {
+        sync_steam_choice();
         settings.nickname = trim(control_text(name));
         settings.windowed = SendMessageW(windowed, BM_GETCHECK, 0, 0) == BST_CHECKED;
         settings.prefer_steam = SendMessageW(steam_mode, BM_GETCHECK, 0, 0) == BST_CHECKED;
@@ -196,6 +204,7 @@ public:
     void save_fields() {
         read_fields();
         hb::save_settings(settings);
+        steam_dirty = false;
         set_status(L"Setarile au fost salvate in profilul tau Windows.");
     }
 
@@ -209,7 +218,7 @@ public:
             if (copy.favorites.size() >= 100) throw std::runtime_error("Limita este de 100 favorite");
             copy.favorites.push_back(endpoint);
         }
-        hb::save_settings(copy);
+        hb::save_settings(copy, false);
         settings = std::move(copy);
         render();
         set_status(L"Favorite actualizate.");
@@ -220,9 +229,9 @@ public:
         if (path.empty()) return;
         auto copy = settings;
         copy.local_game = path;
-        hb::save_settings(copy);
+        hb::save_settings(copy, false);
         settings = std::move(copy);
-        set_status(L"Instalare locala salvata. Steam are prioritate daca este detectat.");
+        set_status(L"Instalare locala salvata. Modul de pornire se configureaza prin bifa Steam.");
     }
 
     void launch() {
@@ -235,12 +244,13 @@ public:
             settings.local_game = path;
         }
         hb::save_settings(settings);
+        steam_dirty = false;
         const auto mode = hb::start_game(settings, endpoint);
         if (!endpoint.empty()) {
             settings.history.erase(std::remove(settings.history.begin(), settings.history.end(), endpoint), settings.history.end());
             settings.history.insert(settings.history.begin(), endpoint);
             if (settings.history.size() > 100) settings.history.resize(100);
-            try { hb::save_settings(settings); }
+                try { hb::save_settings(settings, false); }
             catch (const std::exception&) {
                 set_status(L"Pornire solicitata; istoricul nu a putut fi salvat. Intrarea nu este confirmata.");
                 render();
@@ -312,6 +322,9 @@ LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lp
         switch (message) {
             case WM_CREATE: app->initialize(); return 0;
             case WM_SIZE: app->layout(); return 0;
+            case WM_ACTIVATE:
+                if (LOWORD(wparam) != WA_INACTIVE) app->sync_steam_choice();
+                break;
             case WM_GETMINMAXINFO: {
                 auto info = reinterpret_cast<MINMAXINFO*>(lparam);
                 info->ptMinTrackSize.x = app->scale(820);
@@ -323,6 +336,10 @@ LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lp
                 if (id == search_id && HIWORD(wparam) == EN_CHANGE) { if (app->list) app->render(); return 0; }
                 if (HIWORD(wparam) != BN_CLICKED) break;
                 switch (id) {
+                    case steam_mode_id:
+                        app->steam_dirty = true;
+                        app->set_status(L"Preferinta Steam se aplica la urmatoarea pornire. Salveaza sau porneste jocul pentru aplicare.");
+                        return 0;
                     case refresh_id: app->refresh_list(); return 0;
                     case favorite_id: app->toggle_favorite(); return 0;
                     case local_id: app->select_local(); return 0;

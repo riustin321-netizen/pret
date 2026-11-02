@@ -125,7 +125,7 @@ Settings load_settings() {
     return settings;
 }
 
-void save_settings(const Settings& settings) {
+void save_settings(const Settings& settings, bool save_steam_preference) {
     const nlohmann::json document = {
         {"version", 1}, {"nickname", utf8(settings.nickname)}, {"windowed", settings.windowed}, {"prefer_steam", settings.prefer_steam},
         {"local_game", utf8(settings.local_game.wstring())}, {"favorites", settings.favorites}, {"history", settings.history}
@@ -137,7 +137,7 @@ void save_settings(const Settings& settings) {
     if (opened != ERROR_SUCCESS) throw std::runtime_error("Nu pot salva setarile in profilul Windows");
     const auto written = RegSetValueExW(handle, L"SettingsJson", 0, REG_SZ, reinterpret_cast<const BYTE*>(text.c_str()), static_cast<DWORD>((text.size() + 1) * sizeof(wchar_t)));
     DWORD preference = settings.prefer_steam ? 1 : 0;
-    const auto mode_written = written == ERROR_SUCCESS ? RegSetValueExW(handle, L"PreferSteam", 0, REG_DWORD, reinterpret_cast<const BYTE*>(&preference), sizeof(preference)) : written;
+    const auto mode_written = written == ERROR_SUCCESS && save_steam_preference ? RegSetValueExW(handle, L"PreferSteam", 0, REG_DWORD, reinterpret_cast<const BYTE*>(&preference), sizeof(preference)) : written;
     RegCloseKey(handle);
     if (written != ERROR_SUCCESS || mode_written != ERROR_SUCCESS) throw std::runtime_error("Salvarea setarilor a esuat");
 }

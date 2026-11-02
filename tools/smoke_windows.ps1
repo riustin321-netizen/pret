@@ -30,6 +30,34 @@ try {
     if ($steamCheckbox -eq [IntPtr]::Zero) {
         throw "Steam integration setting is missing"
     }
+    # Simulate a setting saved by the in-game panel while this launcher stays open.
+    # Restore the user's original value even if the synchronization check fails.
+    $settingsKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey("Software\HellBoost")
+    $hadPreference = $settingsKey.GetValueNames() -contains "PreferSteam"
+    $previousValue = $null
+    $previousKind = $null
+    if ($hadPreference) {
+        $previousValue = $settingsKey.GetValue("PreferSteam")
+        $previousKind = $settingsKey.GetValueKind("PreferSteam")
+    }
+    try {
+        $initialCheck = [HellBoostUiProbe]::SendMessage($steamCheckbox, 0x00F0, [IntPtr]::Zero, [IntPtr]::Zero)
+        $externalChoice = if ($initialCheck -eq [IntPtr]::Zero) { 1 } else { 0 }
+        $settingsKey.SetValue("PreferSteam", $externalChoice, [Microsoft.Win32.RegistryValueKind]::DWord)
+        [void][HellBoostUiProbe]::SendMessage($process.MainWindowHandle, 0x0006, [IntPtr]::new(1), [IntPtr]::Zero)
+        $syncedCheck = [HellBoostUiProbe]::SendMessage($steamCheckbox, 0x00F0, [IntPtr]::Zero, [IntPtr]::Zero)
+        if ($syncedCheck.ToInt64() -ne $externalChoice) {
+            throw "Launcher did not synchronize the setting saved by the in-game panel"
+        }
+    } finally {
+        if ($hadPreference) {
+            $settingsKey.SetValue("PreferSteam", $previousValue, $previousKind)
+        } else {
+            $settingsKey.DeleteValue("PreferSteam", $false)
+        }
+        $settingsKey.Close()
+        [void][HellBoostUiProbe]::SendMessage($process.MainWindowHandle, 0x0006, [IntPtr]::new(1), [IntPtr]::Zero)
+    }
     $original = [HellBoostUiProbe]::SendMessage($steamCheckbox, 0x00F0, [IntPtr]::Zero, [IntPtr]::Zero)
     [void][HellBoostUiProbe]::SendMessage($steamCheckbox, 0x00F5, [IntPtr]::Zero, [IntPtr]::Zero)
     $changed = [HellBoostUiProbe]::SendMessage($steamCheckbox, 0x00F0, [IntPtr]::Zero, [IntPtr]::Zero)

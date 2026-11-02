@@ -21,7 +21,7 @@ struct Settings {
 std::wstring wide(const std::string& text);
 std::string utf8(const std::wstring& text);
 Settings load_settings();
-void save_settings(const Settings& settings);
+void save_settings(const Settings& settings, bool save_steam_preference = true);
 std::filesystem::path application_directory();
 std::filesystem::path find_steam();
 std::filesystem::path find_local_game(const Settings& settings);
