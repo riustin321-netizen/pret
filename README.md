@@ -1,59 +1,62 @@
-# HellBoost client development
+# HellBoost 0.3 — aplicație Windows independentă
 
-Țintă: CS 1.6 Steam legacy, protocol 48, build 8684. Proiectul este în dezvoltare; nu este un client final și nu conține jocul sau fișierele NextClient.
+HellBoost este un browser de servere și launcher propriu pentru CS 1.6. Aplicația principală este acum **C++/Win32**, fără Python și fără module NextClient. Lista, ordinea boosturilor și informațiile despre servere vin din API-ul existent al platformei HellBoost.
 
-## Ce poți rula acum
+**Stadiu:** aplicație externă în dezvoltare, nu un înlocuitor final pentru clientul CS. Nu modifică motorul, nu înlocuiește „Find Servers” din joc și nu raportează încă intrări confirmate sau timpi reali de conectare.
 
-- **Browser extern HellBoost:** lista Internet din API-ul existent, în ordinea primită, Favorite și Istoric. Detectează Steam; dacă lipsește, folosește instalarea locală selectată. Istoricul reprezintă cereri de pornire, nu intrări confirmate.
-- **Bibliotecă nativă C++:** evenimentele unei încercări de conectare, durată monotonă, deduplicare, anulare, schimbare server și coadă limitată. Biblioteca nu este încă încărcată de joc și nu trimite statistici.
-- **Adaptor de master pentru NextClient:** endpoint PHP cu formatul HTTP verificat în sursele publice NextClient și configurație VDF. Este destinat unui NextClient existent care suportă acest protocol, nu clientului Steam nemodificat. Instalarea și testul în joc sunt încă necesare.
+## Descărcare și pornire
 
-Detalii despre [configurarea masterului](docs/nextclient-master.md), [interfața nativă](docs/native-client.md) și [limitele integrării](docs/client-integration.md).
+Pachetul pentru Windows este `downloads/HellBoost-dev-windows-x86.zip`. Extrage-l într-un folder separat și deschide `HellBoost/HellBoost.exe` sau `PORNESTE.cmd`. Nu trebuie instalat Python pentru acest pachet. Nu sunt incluse jocul sau bibliotecile lui.
 
-## Pornirea browserului extern pe Windows
+1. Apasă **REINCARCA LISTA** pentru a încărca `https://hellboost.net/api.php`.
+2. Alege un server sau introdu o adresă `IP:port`/`domeniu:port`.
+3. Introdu numele și apasă **PORNESTE CS 1.6**.
 
-Instalează Python 3.11+ cu Tcl/Tk și Python Launcher, apoi rulează `PORNESTE.cmd` sau:
+Steam are prioritate dacă este detectat. Folosește build-ul/ramura selectată în Steam; aplicația nu schimbă ramura și nu poate garanta că utilizatorul deține ori are instalat CS. Ținta de integrare este Steam legacy, protocol 48, build 8684.
+
+Dacă Steam lipsește, aplicația caută `hl.exe` lângă EXE, în `client/hl.exe`, apoi în locația salvată. Dacă nu îl găsește, cere selectarea lui. Directorul trebuie să conțină `cstrike`. Aplicația nu instalează un emulator Steam și nu schimbă autentificarea jocului.
+
+## Funcții existente
+
+- Internet, Favorite și Istoric, cu căutare după nume, adresă sau hartă.
+- Ordinea din platformă este păstrată; nu sortăm după ping sau număr de jucători. Filtrarea și eliminarea serverelor offline pot reduce lista vizibilă.
+- Coloane pentru poziție, nume, jucători, hartă, boost, țara serverului și adresă. Valorile sunt ale API-ului, nu măsurători live ale aplicației.
+- Favoritele, ultimele 100 de cereri de conectare, numele, modul fereastră și instalarea locală se salvează sub `HKEY_CURRENT_USER\Software\HellBoost`, în `SettingsJson`.
+- Cererea HTTPS rulează în fundal, cu validare de certificat, TLS 1.2, limite de timp și de mărime. Redirecturile sunt respinse. O eroare rămâne vizibilă; nu este înlocuită cu servere demonstrative.
+- `HellBoostClient.dll` este o bibliotecă proprie pentru măsurare și evidența tentativelor. Nu este încă încărcată de motor și nu este necesară pentru pornirea EXE-ului.
+
+Istoricul înseamnă **cereri de pornire/conectare**, nu jucători intrați. Țara afișată este a serverului din API, nu țara jucătorului. Aplicația nu colectează sau transmite acum identități de jucători ori evenimente de conectare.
+
+## Ce rămâne pentru clientul integrat în joc
+
+Este necesar un adaptor propriu pentru motorul build 8684: browserul din joc, confirmarea intrării efective, corelarea cu tentativa, transportul statisticilor și integrarea lor în platformă. Compilarea bibliotecii nu rezolvă acest adaptor. Nu copia DLL-ul de dezvoltare peste `client.dll`, `hw.dll` sau `GameUI.dll`.
+
+[Detalii despre arhitectură și limitări](docs/client-integration.md). Codul vechi de compatibilitate este păstrat numai în `legacy/nextclient`, în afara pachetelor și a build-ului principal.
+
+## Compilare Windows
+
+Instalează Visual Studio 2022 Build Tools cu **Desktop development with C++**, apoi rulează:
 
 ```bat
-py -3 launcher\main.py
+build-native.cmd
+powershell -File tools\smoke_windows.ps1
 ```
 
-Apasă **REÎNCARCĂ LISTA** pentru o cerere HTTPS către `https://hellboost.net/launcher?a=list`. În caz de eroare nu se introduc servere demonstrative. Steam are prioritate dacă este instalat; prezența lui nu dovedește că utilizatorul deține sau are instalat CS. Launcherul nu schimbă ramura jocului și nu ocolește autentificarea.
+Scriptul compilează aplicația, DLL-ul și testele x86. Testul de fereastră deschide și închide aplicația fără să pornească jocul sau să contacteze API-ul. Workflow-ul `.github/workflows/windows.yml` face aceiași pași și pregătește un artifact ZIP. Executarea CI trebuie verificată separat; existența workflow-ului nu dovedește că a trecut.
 
-Pentru modul local, alege propriul `hl.exe` sau pune proiectul lângă `hl.exe`/într-un folder care conține `client/hl.exe` și `client/cstrike`. Setările se salvează în `%LOCALAPPDATA%/HellBoost/settings.json`. Favoritele și istoricul sunt ale launcherului; nu se sincronizează cu browserul din joc.
+Binarele incluse au fost compilate pe Linux cu MinGW GCC 14-posix. Nu au fost executate pe Windows în acest mediu. Windows 10/11 sunt țintele de test; Windows 7 nu este garantat, iar Steam nu îl mai suportă oficial.
 
-## Compilare Windows x86
-
-`build-native.cmd` necesită Visual Studio 2022 Build Tools cu Desktop development with C++. Compilează biblioteca și rulează testele native, fără să pornească jocul. DLL-ul este un modul de dezvoltare, nu un înlocuitor pentru `client.dll`; nu îl copia peste fișiere Steam.
-
-Workflow-ul `.github/workflows/windows.yml` pregătește un EXE al launcherului, DLL-ul x86 și arhiva `HellBoost-dev-windows-x86.zip`. Workflow-ul trebuie să ajungă în GitHub și să se încheie cu succes înainte să existe un artifact descărcabil în Actions. Nu a fost rulat în acest mediu. EXE-ul folosește Python 3.11 și țintește Windows 10/11; Windows 7 nu este promis.
-
-Pentru pachetul sursă:
+## Teste și pachete
 
 ```sh
-python tools/package.py
-```
-
-Pentru un pachet cu EXE și DLL deja compilate:
-
-```sh
+c++ -std=c++17 -Wall -Wextra -Werror -pedantic native/browser/model.cpp native/tests/browser_test.cpp -o /tmp/hellboost-browser-test
+/tmp/hellboost-browser-test
+python -m unittest discover -s tests -v
 python tools/package.py --windows
 ```
 
-Comanda refuză crearea pachetului Windows dacă lipsesc binarele. `python tools/package.py --native` include DLL-ul și testul ABI pentru Windows împreună cu sursele Python ale launcherului, fără a necesita un EXE al launcherului. Fiecare arhivă conține un manifest SHA-256 al fișierelor.
+Testele C++ verifică schema API, ordinea boosturilor, erori și dubluri, Unicode, filtrele, favoritele și comenzile de lansare. Biblioteca de evenimente are [testele ABI și de durată](docs/native-client.md). Launcherul Python vechi este păstrat ca instrument opțional, nu este utilizat de EXE. Cele două teste Tk ale lui necesită display; pe Linux pot rula prin `xvfb-run -a`.
 
-## Teste
+`python tools/package.py` generează pachetul sursă. `--native` adaugă DLL-ul și testele de diagnostic; `--windows` include și aplicația nativă. Pachetele au manifest SHA-256 și exclud fișierele jocului, arhiva originală a platformei și integrarea istorică NextClient.
 
-```sh
-python -m unittest discover -s tests -v
-php -n tests/php/master_format_test.php
-c++ -std=c++17 -Wall -Wextra -Werror -pedantic native/tests/connection_tracker_test.cpp -o /tmp/hellboost-tracker-test
-/tmp/hellboost-tracker-test
-c++ -std=c++17 -Wall -Wextra -Werror -pedantic -fPIC -DHB_BUILD -shared native/hellboost_client.cpp -pthread -o /tmp/libHellBoostClient.so
-c++ -std=c++17 -Wall -Wextra -Werror -pedantic native/tests/abi_test.cpp -L/tmp -lHellBoostClient -Wl,-rpath,/tmp -pthread -o /tmp/hellboost-abi-test
-/tmp/hellboost-abi-test
-```
-
-Cele trei teste HTTP pornesc un server PHP temporar pe loopback și folosesc date de test, nu baza de date de producție. Necesită PHP CLI în PATH sau `HELLBOOST_PHP_EXECUTABLE`. Fără PHP sunt raportate explicit ca skipped. Cele două teste Tk necesită Windows sau un display X11; pe Linux fără display se raportează skipped. Pentru toate testele pe Linux se poate folosi `xvfb-run -a python -m unittest discover -s tests -v`. În medii care interzic socketurile, este necesară rularea testelor HTTP cu acces loopback permis.
-
-Nu sunt încă verificate: interfața și pornirea pe Windows, integrarea reală în CS, masterul live și statisticile end-to-end. Platforma de producție nu a fost modificată.
+[Compilare prin MinGW și interfața bibliotecii](docs/native-client.md). Biblioteca JSON standard folosită este nlohmann/json 3.11.3 (MIT), cu sursa și licența incluse în `third_party/nlohmann`.

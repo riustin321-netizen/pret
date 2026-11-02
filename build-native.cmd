@@ -22,5 +22,13 @@ cl /nologo /std:c++17 /EHsc /W4 /WX /MT /UNDEBUG native\tests\connection_tracker
 if errorlevel 1 exit /b 1
 build\tracker_test.exe
 if errorlevel 1 exit /b 1
-echo Native Win32 library and tests built successfully.
+cl /nologo /std:c++17 /EHsc /W4 /WX /MT native\browser\model.cpp native\tests\browser_test.cpp /Fobuild\ /Febuild\browser_test.exe
+if errorlevel 1 exit /b 1
+build\browser_test.exe
+if errorlevel 1 exit /b 1
+rc /nologo /fobuild\browser_resources.res native\browser\resources.rc
+if errorlevel 1 exit /b 1
+cl /nologo /std:c++17 /EHsc /W4 /WX /MT /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 native\browser\main.cpp native\browser\windows.cpp native\browser\model.cpp build\browser_resources.res /Fobuild\ /Febuild\HellBoost.exe /link /SUBSYSTEM:WINDOWS /MANIFEST:NO user32.lib gdi32.lib advapi32.lib comctl32.lib comdlg32.lib winhttp.lib
+if errorlevel 1 exit /b 1
+echo HellBoost native Win32 browser, library and tests built successfully.
 exit /b 0

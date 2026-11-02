@@ -2,26 +2,41 @@
 import argparse
 import hashlib
 import json
+import struct
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def require_pe32(path):
+    data = path.read_bytes()
+    if len(data) < 64 or data[:2] != b"MZ":
+        raise SystemExit(f"Not a Windows executable: {path.name}")
+    offset = struct.unpack_from("<I", data, 60)[0]
+    if offset + 26 > len(data) or data[offset:offset + 4] != b"PE\0\0":
+        raise SystemExit(f"Invalid Windows executable: {path.name}")
+    machine = struct.unpack_from("<H", data, offset + 4)[0]
+    optional_magic = struct.unpack_from("<H", data, offset + 24)[0]
+    if machine != 0x14C or optional_magic != 0x10B:
+        raise SystemExit(f"Expected Windows x86 / PE32: {path.name}")
+
+
 def package(windows=False, native=False):
     files = []
-    for directory in ("launcher", "native", "tests", "docs", "tools", "integrations", ".github/workflows", "third_party"):
-        files.extend(p for p in (ROOT / directory).rglob("*") if p.is_file() and p.suffix in (".py", ".cpp", ".h", ".hpp", ".def", ".md", ".php", ".vdf", ".yml", ".txt"))
+    for directory in ("launcher", "native", "tests", "docs", "tools", ".github/workflows", "third_party"):
+        files.extend(p for p in (ROOT / directory).rglob("*") if p.is_file() and p.suffix in (".py", ".cpp", ".h", ".hpp", ".def", ".md", ".yml", ".txt", ".ps1", ".rc", ".manifest", ".MIT"))
     files.extend(ROOT / name for name in ("README.md", "PORNESTE.cmd", "build-native.cmd", ".gitignore"))
     binaries = []
     if windows:
-        binaries.append((ROOT / "dist/HellBoost.exe", "HellBoost.exe"))
+        binaries.append((ROOT / "build/HellBoost.exe", "HellBoost.exe"))
     if windows or native:
-        binaries.extend([(ROOT / "build/HellBoostClient.dll", "native/HellBoostClient.dll"), (ROOT / "build/abi_test.exe", "native/abi_test.exe")])
+        binaries.extend([(ROOT / "build/HellBoostClient.dll", "native/HellBoostClient.dll"), (ROOT / "build/abi_test.exe", "native/abi_test.exe"), (ROOT / "build/browser_test.exe", "native/browser_test.exe")])
     if windows or native:
         for path, _ in binaries:
             if not path.is_file():
                 raise SystemExit(f"Missing Windows build: {path.name}. No Windows package was produced.")
+            require_pe32(path)
     name = "HellBoost-dev-windows-x86.zip" if windows else "HellBoost-native-dev-x86.zip" if native else "HellBoost-dev-source.zip"
     output = ROOT / "dist" / name
     output.parent.mkdir(parents=True, exist_ok=True)

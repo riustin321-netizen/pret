@@ -1,44 +1,37 @@
-# HellBoost: integrare exclusiv din client
+# HellBoost independent: arhitectură și integrare
 
-## Ce există în arhiva primită
+## Componente proprii
 
-- `monitor/master/master.php`: răspuns UDP GoldSrc, ordonat prin regulile platformei; include separat recepție de rapoarte de la plugin.
-- `monitor/launcher.php`: listă JSON și raport de intenție înainte de lansarea jocului.
-- `monitor/cron/poll.php`: asociază intențiile cu jucători observați ulterior prin interogări ale serverului. Aceasta este o estimare temporală, nu identificare confirmată.
-- `CS16_Kit/launcher/Launcher.cs`: launcher C#, închide fereastra după pornirea `hl.exe`.
-- `CS16_Kit/client/CITESTE.txt`: solicită explicit o bază non-Steam; nu corespunde cerinței actuale Steam.
+`native/browser` este aplicația principală C++/Win32. `model.cpp` validează schema API-ului, păstrează ordinea platformei, filtrează lista și construiește argumentele de pornire. `windows.cpp` implementează HTTPS prin WinHTTP, salvarea unui singur document de setări în profilul utilizatorului și pornirea procesului fără shell. `main.cpp` implementează fereastra, listele și operațiile utilizatorului.
 
-Arhiva a fost extrasă separat pentru inspecție, fără importarea configurației, executabilelor sau datelor sale în Git și fără accesarea platformei live.
+Nu importăm surse, biblioteci, hook-uri sau build-uri NextClient. nlohmann/json 3.11.3 este o dependență standard MIT pentru JSON, inclusă în surse. Codul vechi de interoperabilitate este arhivat în `legacy/nextclient` și nu intră în pachetele principale.
 
-## Modelul nou
+## Integrarea cu platforma existentă
 
-Fiecare încercare are un UUID unic. Un adaptor din joc observă începerea conectării și confirmarea intrării în joc pe același server. Durata se calculează cu un ceas monoton, în milisecunde. Pornirea procesului, clicul pe Connect, deschiderea unui port, răspunsul A2S sau apariția unui nickname nu confirmă singure intrarea.
+Arhiva HellBoost furnizată conține `monitor/api.php`, care întoarce un obiect cu `servers`. Fiecare server are `rank`, `address`, `hostname`, `map`, `players`, `max_players`, `online`, `country` și `promo`, printre alte câmpuri. Aplicația consumă acest endpoint direct, fără un format de master specific altui client.
 
-`native/connection_tracker.hpp` implementează numai această mașină de stări. Rezultatele sunt `entered_game`, `failed`, `cancelled`, `superseded`. Callbackurile întârziate pentru alte încercări și rezultatele duplicate sunt ignorate. Schimbarea serverului în timpul conectării încheie încercarea anterioară separat. Schimbarea hărții după intrare nu trebuie raportată drept o nouă conectare adusă de platformă.
+Precedența TOP/BOOST/VIP, expirarea serviciilor și aprobarea serverelor rămân în `ranked_servers()` pe backend. Clientul păstrează ordinea răspunsului și afișează rank-ul primit; nu decide singur pachetul plătit și nu acceptă o instrucțiune de sistem de la un server. Serverele offline sunt omise, iar duplicatele după adresă sunt eliminate. Căutarea păstrează ordinea relativă.
 
-## Contract propus, încă neimplementat în API
+TLS și certificatele Windows sunt verificate implicit. Corpul este limitat la 2 MiB și 5000 de servere, cu limite de adâncime și număr de noduri JSON. Câmpurile duplicate și adresele care ar injecta comenzi sunt respinse. Cererea nu trimite date despre utilizator. Nu există un endpoint de evenimente nou publicat de acest task.
 
-Un rezultat va include versiunea protocolului, UUID-ul încercării, adresa serverului, sursa (`internet`, `favorites`, `history`, `console`), rezultatul, durata în milisecunde și nickname-ul opțional. Backendul determină țara din adresa cererii prin infrastructura proxy de încredere; nu din limba Windows. Tierul și apartenența serverului se verifică în baza de date, nu se acceptă din client.
+## Browserul în joc: etapă încă lipsă
 
-Backendul trebuie să deduplice atomic UUID-ul în cadrul identității instalării, să limiteze rapoartele și dimensiunile lor și să păstreze telemetria nouă distinctă de estimările vechi. Numai `entered_game` se numără ca intrare. Încercările eșuate au propria durată. Numărul total de jucători online rămâne separat de conectările atribuite HellBoost.
+Aplicația externă nu poate determina starea internă a motorului doar prin pornirea `hl.exe` sau Steam. DLL-ul de evidență nu se încarcă automat în CS. Pentru înlocuirea „Find Servers” și confirmarea intrării trebuie ales și verificat un mecanism propriu de integrare pentru fișierele exacte din build 8684.
 
-Rapoartele sunt observații declarate de client; nu reprezintă automat identitate Steam verificată sau dovadă imposibil de falsificat. Un secret global în executabil nu rezolvă autentificarea. Transportul HTTPS, înregistrarea instalării și mecanismul de autentificare trebuie implementate înainte de expunerea endpointului. Oprirea telemetriei sau indisponibilitatea API nu trebuie să împiedice jocul. Nickname-ul și telemetria necesită informare clară în client și o politică de retenție.
+SDK-ul oficial Half-Life inspectat (`b1b5cf5892918535619b2937bb927e46cb097ba1`) descrie callbackurile DLL-ului de mod și `net_api_t::Status`. Aceste declarații nu reprezintă singure un mecanism de extensie al clientului Counter-Strike închis. Nu inventăm offseturi sau metode de încărcare și nu instalăm automat DLL-uri peste jocul Steam.
 
-## Verificarea Steam încă necesară
+Analiza exporturilor bibliotecilor originale `hw.dll` și `GameUI.dll` ale build-ului țintă, apoi testarea pe Windows, sunt necesare pentru continuarea adaptorului. Aceste fișiere nu sunt incluse în repository și nu vor fi distribuite în pachetele HellBoost. Dacă se utilizează o copie separată de test, instalarea originală trebuie păstrată intactă.
 
-Nu există în arhivă adaptorul nativ, sursele unui browser integrat sau un build Steam de test. Ulterior, accesul Git cu permisiunea de rețea necesară a reușit. Au fost inspectate sursele oficiale Valve (`b1b5cf5892918535619b2937bb927e46cb097ba1`) și sursele publice NextClient (`2b39c3e494c8643636365bbf449d8e1f746f9929`). Constatările despre masterul HTTP și semnificația evenimentelor NextClient sunt în [nextclient-master.md](nextclient-master.md).
+## Evenimentele conectării
 
-SDK-ul Half-Life expune callbackuri ale DLL-ului de mod și `net_api_t::Status`, dar acestea nu stabilesc singure un mecanism de extensie al clientului CS închis. NextClient folosește propriile biblioteci și integrare în motor. Urmează implementarea și verificarea adaptorului pe Windows; nu înlocuim automat DLL-uri Steam și nu folosim patch-uri binare neverificate.
+Biblioteca proprie `HellBoostClient.dll` urmărește fiecare tentativă separat. Un adaptor de motor trebuie să emită începutul și rezultatul pentru același ID. Durata este diferența ceasului monoton, în milisecunde; nu diferența dintre primirea a două cereri HTTP și nu timpul de pornire al procesului.
 
-Browserul din joc trebuie verificat separat: ordinea adreselor din răspunsul master nu garantează ordinea afișării după sortarea browserului. Există acum configurație pentru un NextClient existent și un endpoint PHP compatibil, dar nu au fost instalate sau testate în joc. Browserul extern al launcherului păstrează ordinea API-ului HellBoost. Nu sunt implementate încă înlocuirea browserului Steam sau colectarea evenimentelor reale.
+Rezultatele existente sunt `entered_game`, `failed`, `cancelled`, `superseded`. Semnalul de succes trebuie verificat în motor pe build-ul țintă. Schimbarea hărții, reinițializarea HUD-ului sau răspunsul A2S nu sunt automat o nouă intrare. Dacă un callback sosește târziu pentru o altă tentativă, este ignorat. Modificarea setării de colectare golește logic datele în așteptare.
 
-## Validare locală
+Transportul către backend și tabloul statisticilor nu sunt implementate. Contractul viitor trebuie să includă sesiune UUID + ID tentativă, server, sursă, rezultat, durată și nickname opțional. Tierul se determină în baza de date. Țara jucătorului se estimează pe backend din IP prin infrastructura de încredere, separat de țara serverului afișată în browser. Un nickname raportat nu este o identitate Steam verificată. Numărul total online și conectările atribuite HellBoost se păstrează distinct.
 
-Din `/workspace/pret`:
+## Dovezi și limite
 
-```sh
-c++ -std=c++17 -Wall -Wextra -Werror -pedantic native/tests/connection_tracker_test.cpp -o /tmp/hellboost-tracker-test
-/tmp/hellboost-tracker-test
-```
+Nucleul browserului și biblioteca de evenimente au teste executabile pe Linux. Binarele PE32 pentru Windows se compilează prin MinGW; compilarea nu validează WinHTTP sau pornirea CS pe Windows. Workflow-ul Windows include un test real de creare/închidere a ferestrei, fără a porni jocul.
 
-Testele verifică numai logica duratei și a stărilor, nu integrarea cu jocul. Testarea Windows trebuie să acopere conectare reușită, server plin, parolă greșită, anulare, reconectare, schimbare server, descărcări de resurse, schimbare hartă și API indisponibil.
+Platforma de producție nu a fost modificată. Conexiunea live către HellBoost a fost blocată de politica/proxy-ul mediului, deci nu este declarată funcțională. Compatibilitatea non-Steam înseamnă aici lansarea unui `hl.exe` ales de utilizator, nu furnizarea unui emulator sau compatibilitatea garantată a unui adaptor de motor cu orice client non-Steam.

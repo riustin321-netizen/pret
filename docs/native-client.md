@@ -1,4 +1,6 @@
-# Biblioteca nativă HellBoost
+# Codul nativ HellBoost
+
+Aplicația principală `HellBoost.exe` este C++/Win32 în `native/browser`. Consumă API-ul HellBoost direct și nu se leagă de biblioteca de evenimente la pornire. `native/tests/browser_test.cpp` verifică parserul, ordinea, căutarea, favoritele, Unicode și construirea sigură a argumentelor. Fișierele de mai jos descriu separat biblioteca de evidență a conectărilor, încă neintegrată în motor.
 
 `native/hellboost_client.h` definește ABI C versiunea 1 pentru o bibliotecă Win32. CS 1.6 este un proces x86 chiar și pe Windows x64. Codul este propriu; nu sunt incluse surse, DLL-uri sau mecanisme de autentificare NextClient/Steam.
 
@@ -31,6 +33,11 @@ Comenzi de cross-compilare, cu toolchain-ul MinGW x86 disponibil în PATH:
 mkdir -p build
 i686-w64-mingw32-g++-posix -std=c++17 -Wall -Wextra -Werror -pedantic -DHB_BUILD -shared -static -static-libgcc -static-libstdc++ native/hellboost_client.cpp native/hellboost_client.def -o build/HellBoostClient.dll
 i686-w64-mingw32-g++-posix -std=c++17 -Wall -Wextra -Werror -pedantic -static -static-libgcc -static-libstdc++ native/tests/abi_test.cpp build/HellBoostClient.dll -o build/abi_test.exe
+i686-w64-mingw32-g++-posix -std=c++17 -Wall -Wextra -Werror -pedantic -static -static-libgcc -static-libstdc++ native/browser/model.cpp native/tests/browser_test.cpp -o build/browser_test.exe
+i686-w64-mingw32-windres native/browser/resources.rc -O coff -o build/browser_resources.o
+i686-w64-mingw32-g++-posix -std=c++17 -Wall -Wextra -Werror -pedantic -DUNICODE -D_UNICODE -DNOMINMAX -D_WIN32_WINNT=0x0601 -municode -mwindows -static -static-libgcc -static-libstdc++ native/browser/main.cpp native/browser/windows.cpp native/browser/model.cpp build/browser_resources.o -lcomctl32 -lcomdlg32 -lwinhttp -ladvapi32 -lgdi32 -luser32 -o build/HellBoost.exe
 ```
 
 Pe Windows, `native\abi_test.exe` din pachetul nativ verifică DLL-ul aflat alături și afișează rezultatul în terminal. Acesta este un test cu evenimente sintetice, nu un test al jocului; nu trimite statistici către HellBoost.
+
+`native\browser_test.exe` verifică nucleul browserului fără rețea sau acces la joc. `tools/smoke_windows.ps1`, rulat din checkout după compilare, deschide și închide fereastra aplicației native. Aceste teste nu confirmă că Steam deține jocul, că API-ul live este accesibil sau că un server CS acceptă conectarea.
