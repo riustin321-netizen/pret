@@ -60,15 +60,17 @@ int wmain(int argc, wchar_t** argv) {
 
     std::thread dialog_thread([] { command(); });
     HWND dialog = nullptr;
-    for (unsigned i = 0; i < 250 && !dialog; ++i) {
+    HWND checkbox = nullptr;
+    for (unsigned i = 0; i < 250; ++i) {
         dialog = FindWindowW(nullptr, L"HellBoost / Options");
-        if (!dialog) std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        if (dialog) checkbox = GetDlgItem(dialog, 201);
+        if (dialog && checkbox && IsWindowVisible(dialog)) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     CHECK(dialog);
     DWORD owner = 0;
     GetWindowThreadProcessId(dialog, &owner);
     CHECK(owner == GetCurrentProcessId());
-    HWND checkbox = GetDlgItem(dialog, 201);
     CHECK(checkbox);
     const auto before = SendMessageW(checkbox, BM_GETCHECK, 0, 0);
     SendMessageW(checkbox, BM_CLICK, 0, 0);
